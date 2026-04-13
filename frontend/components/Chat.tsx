@@ -57,9 +57,10 @@ export function Chat({ pathway, team }: ChatProps) {
 
       const data = await response.json();
 
+      const assistantContent = data.message || data.error || "I didn't catch that — could you try again?";
       setMessages([
         ...newMessages,
-        { role: "assistant", content: data.message },
+        { role: "assistant", content: assistantContent },
       ]);
 
       if (data.isComplete && data.tickets) {

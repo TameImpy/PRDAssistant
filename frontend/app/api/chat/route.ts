@@ -10,7 +10,14 @@ import { generateTickets } from "@/lib/tickets";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  maxRetries: 3, // Auto-retries on 429 (rate limit) and 529 (overloaded) with backoff
 });
+
+const EXTRACTION_PROMPT = `Analyze this conversation and extract what information has been captured so far. Return ONLY valid JSON, nothing else:
+
+{"whatTheyNeed":"concise summary or null","whoBenefits":"concise summary or null","whyItMatters":"concise summary or null","successCriteria":"concise summary or null"}
+
+Use null (not the string "null") for any field the user hasn't addressed yet.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,36 +32,7 @@ export async function POST(request: NextRequest) {
       team: string;
     } = body;
 
-    // Single Claude call that both responds AND extracts fields
-    // We ask Claude to include a JSON block at the end of its response
-    const basePrompt = getSystemPrompt(pathway, []);
-
-    const combinedPrompt = `${basePrompt}
-
-IMPORTANT INSTRUCTION: At the very end of every response, after your conversational message, include a hidden extraction block in exactly this format on its own line:
-
-<!--FIELDS:{"whatTheyNeed":"value or null","whoBenefits":"value or null","whyItMatters":"value or null","successCriteria":"value or null"}-->
-
-Fill in each field with a concise summary of what the user has said so far for that topic, or null if they haven't addressed it yet. This block will be stripped from the visible message — the user will never see it. Always include this block, even if all fields are still null.`;
-
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      system: combinedPrompt,
-      messages: messages
-        .map((m) => ({
-          role: m.role,
-          // Strip any existing FIELDS blocks from history so Claude doesn't see them
-          content: m.content.replace(/<!--FIELDS:[\s\S]*?-->/g, "").trim(),
-        }))
-        // Filter out any messages that ended up with empty content after stripping
-        .filter((m) => m.content.length > 0),
-    });
-
-    const rawMessage =
-      response.content[0].type === "text" ? response.content[0].text : "";
-
-    // Extract the fields JSON from the hidden block
+    // Step 1: Extract fields using Haiku (fast + cheap)
     let fields: ExtractedFields = {
       whatTheyNeed: null,
       whoBenefits: null,
@@ -62,33 +40,64 @@ Fill in each field with a concise summary of what the user has said so far for t
       successCriteria: null,
     };
 
-    const fieldsMatch = rawMessage.match(/<!--FIELDS:([\s\S]*?)-->/);
-    if (fieldsMatch) {
+    // Filter out any empty messages to prevent API errors
+    const cleanMessages = messages.filter((m) => m.content && m.content.trim().length > 0);
+    const userMessages = cleanMessages.filter((m) => m.role === "user");
+
+    if (userMessages.length > 0) {
       try {
-        const parsed = JSON.parse(fieldsMatch[1]);
-        fields = {
-          whatTheyNeed: parsed.whatTheyNeed || null,
-          whoBenefits: parsed.whoBenefits || null,
-          whyItMatters: parsed.whyItMatters || null,
-          successCriteria: parsed.successCriteria || null,
-        };
+        const extractionResponse = await anthropic.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 256,
+          system: EXTRACTION_PROMPT,
+          messages: cleanMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        });
+
+        const extractionText =
+          extractionResponse.content[0].type === "text"
+            ? extractionResponse.content[0].text
+            : "";
+
+        const jsonMatch = extractionText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          fields = {
+            whatTheyNeed: parsed.whatTheyNeed || null,
+            whoBenefits: parsed.whoBenefits || null,
+            whyItMatters: parsed.whyItMatters || null,
+            successCriteria: parsed.successCriteria || null,
+          };
+        }
       } catch (e) {
-        console.error("[Chat API] Failed to parse fields:", e);
+        console.error("[Chat API] Field extraction failed:", e);
       }
     }
 
-    // Strip the hidden block from the visible message
-    const assistantMessage = rawMessage
-      .replace(/<!--FIELDS:[\s\S]*?-->/g, "")
-      .trim();
-
-    // Check completion
     const missingFields = (
       Object.keys(fields) as (keyof ExtractedFields)[]
     ).filter((key) => !fields[key]);
     const complete = missingFields.length === 0;
 
-    // Generate tickets when all fields are captured
+    // Step 2: Get conversational response from Sonnet
+    const systemPrompt = getSystemPrompt(pathway, missingFields);
+
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: cleanMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+    });
+
+    const assistantMessage =
+      response.content[0].type === "text" ? response.content[0].text : "";
+
+    // Step 3: Generate tickets when all fields are captured
     let tickets = null;
     if (complete) {
       tickets = await generateTickets({
