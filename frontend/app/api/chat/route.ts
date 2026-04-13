@@ -45,7 +45,7 @@ Fill in each field with a concise summary of what the user has said so far for t
         .map((m) => ({
           role: m.role,
           // Strip any existing FIELDS blocks from history so Claude doesn't see them
-          content: m.content.replace(/<!--FIELDS:.*?-->/gs, "").trim(),
+          content: m.content.replace(/<!--FIELDS:[\s\S]*?-->/g, "").trim(),
         }))
         // Filter out any messages that ended up with empty content after stripping
         .filter((m) => m.content.length > 0),
@@ -62,7 +62,7 @@ Fill in each field with a concise summary of what the user has said so far for t
       successCriteria: null,
     };
 
-    const fieldsMatch = rawMessage.match(/<!--FIELDS:(.*?)-->/s);
+    const fieldsMatch = rawMessage.match(/<!--FIELDS:([\s\S]*?)-->/);
     if (fieldsMatch) {
       try {
         const parsed = JSON.parse(fieldsMatch[1]);
@@ -79,7 +79,7 @@ Fill in each field with a concise summary of what the user has said so far for t
 
     // Strip the hidden block from the visible message
     const assistantMessage = rawMessage
-      .replace(/<!--FIELDS:.*?-->/gs, "")
+      .replace(/<!--FIELDS:[\s\S]*?-->/g, "")
       .trim();
 
     // Check completion
@@ -91,7 +91,7 @@ Fill in each field with a concise summary of what the user has said so far for t
     // Generate tickets when all fields are captured
     let tickets = null;
     if (complete) {
-      tickets = generateTickets({
+      tickets = await generateTickets({
         whatTheyNeed: fields.whatTheyNeed!,
         whoBenefits: fields.whoBenefits!,
         whyItMatters: fields.whyItMatters!,

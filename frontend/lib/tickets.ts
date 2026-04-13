@@ -1,3 +1,5 @@
+import Anthropic from "@anthropic-ai/sdk";
+
 export type TicketInput = {
   whatTheyNeed: string;
   whoBenefits: string;
@@ -18,123 +20,127 @@ export type Ticket = {
   issueDescription: string;
 };
 
-export function generateTickets(input: TicketInput): Ticket[] {
-  const title = generateTitle(input.whatTheyNeed);
-  const userStory = `As a ${input.whoBenefits} member, I want ${input.whatTheyNeed}, so that ${input.whyItMatters}.`;
+const TICKET_GENERATION_PROMPT = `You are an expert agile project manager. Given a data request, generate well-structured tickets.
 
-  const acceptanceCriteria = generateAcceptanceCriteria(input.successCriteria);
-  const storyPoints = estimateStoryPoints(input.whatTheyNeed);
-  const priority = inferPriority(input.whyItMatters);
+Return ONLY valid JSON in this exact format (no other text):
+{
+  "tickets": [
+    {
+      "title": "Concise, action-oriented title (max 60 characters)",
+      "userStory": "As a [specific persona], I want [specific goal], so that [specific business reason].",
+      "acceptanceCriteria": [
+        "Given [precondition], When [action], Then [expected result]",
+        "Given [precondition], When [action], Then [expected result]"
+      ],
+      "storyPoints": 5,
+      "priority": "High",
+      "type": "Story",
+      "dependencies": "Any blockers or required inputs"
+    }
+  ]
+}
+
+Rules:
+- Title must be under 60 characters, action-oriented (e.g. "Build audio revenue dashboard" not "An audio revenue dashboard tracking revenue...")
+- User story must use natural language with a specific persona (not "[persona] member")
+- Acceptance criteria must each follow Given-When-Then format and be specific and testable
+- Story points must be from this scale only: 1 (trivial, 0.5 days), 2 (small, 1 day), 3 (medium, 1.5 days), 5 (moderate, 3 days), 8 (large, 5 days), 13 (very large, 7+ days)
+- Priority must be exactly one of: Critical, High, Medium, Low — infer from the business context
+- Type must be exactly one of: Story, Bug, Spike
+- If the request describes multiple distinct deliverables, create multiple tickets
+- If total work would exceed 13 story points, split into multiple smaller tickets`;
+
+export async function generateTickets(input: TicketInput): Promise<Ticket[]> {
+  try {
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 2048,
+      system: TICKET_GENERATION_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: `Generate tickets for this request:
+
+What they need: ${input.whatTheyNeed}
+Who benefits: ${input.whoBenefits}
+Why it matters: ${input.whyItMatters}
+Success criteria: ${input.successCriteria}
+Team: ${input.team}`,
+        },
+      ],
+    });
+
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "";
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON in Claude response");
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    if (!parsed.tickets || !Array.isArray(parsed.tickets)) {
+      throw new Error("Invalid ticket structure from Claude");
+    }
+
+    // Map Claude's output to our Ticket type, adding team and issueDescription
+    return parsed.tickets.map((t: any) => ({
+      title: String(t.title || "").slice(0, 60),
+      userStory: String(t.userStory || ""),
+      acceptanceCriteria: Array.isArray(t.acceptanceCriteria)
+        ? t.acceptanceCriteria.map(String)
+        : [],
+      storyPoints: VALID_POINTS.includes(t.storyPoints) ? t.storyPoints : 3,
+      priority: VALID_PRIORITIES.includes(t.priority) ? t.priority : "Medium",
+      type: VALID_TYPES.includes(t.type) ? t.type : "Story",
+      team: input.team,
+      dependencies: String(t.dependencies || "None"),
+      issueDescription: input.whyItMatters,
+    }));
+  } catch (error) {
+    console.error("[Tickets] Claude generation failed, using fallback:", error);
+    return generateTicketsFallback(input);
+  }
+}
+
+const VALID_POINTS = [1, 2, 3, 5, 8, 13];
+const VALID_PRIORITIES = ["Critical", "High", "Medium", "Low"];
+const VALID_TYPES = ["Story", "Bug", "Spike"];
+
+// Rule-based fallback — used when Claude is unavailable
+function generateTicketsFallback(input: TicketInput): Ticket[] {
+  const title = input.whatTheyNeed
+    .replace(/^(a|an|the)\s+/i, "")
+    .replace(/\.$/, "")
+    .slice(0, 60);
+
+  const userStory = `As a ${input.whoBenefits}, I want ${input.whatTheyNeed}, so that ${input.whyItMatters}.`;
+
+  const acceptanceCriteria = input.successCriteria
+    .split(/[,;]|and\s/i)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 3)
+    .map(
+      (part) =>
+        `Given the feature is complete, When a user accesses it, Then ${part.toLowerCase()}`
+    );
 
   return [
     {
-      title,
+      title: title.charAt(0).toUpperCase() + title.slice(1),
       userStory,
       acceptanceCriteria,
-      storyPoints,
-      priority,
+      storyPoints: 3,
+      priority: "Medium",
       type: "Story",
       team: input.team,
-      dependencies: "",
+      dependencies: "None",
       issueDescription: input.whyItMatters,
     },
   ];
-}
-
-function generateTitle(whatTheyNeed: string): string {
-  // Create a concise title from the request description
-  const cleaned = whatTheyNeed
-    .replace(/^(a|an|the)\s+/i, "")
-    .replace(/\.$/, "");
-
-  // Capitalise first letter
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-}
-
-function generateAcceptanceCriteria(successCriteria: string): string[] {
-  // Split success criteria into individual criteria and format as Given-When-Then
-  const parts = successCriteria
-    .split(/[,;]|and\s/i)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 3);
-
-  return parts.map((part) => {
-    return `Given the feature is complete, When a user accesses it, Then ${part.toLowerCase().replace(/^they\s+/i, "they should be able to ")}`;
-  });
-}
-
-function estimateStoryPoints(whatTheyNeed: string): number {
-  const description = whatTheyNeed.toLowerCase();
-
-  // Simple heuristic based on complexity indicators
-  const complexityIndicators = [
-    "integrate",
-    "migration",
-    "pipeline",
-    "rebuild",
-    "redesign",
-    "refactor",
-    "multiple",
-    "complex",
-    "automat",
-  ];
-
-  const simpleIndicators = [
-    "report",
-    "update",
-    "fix",
-    "add",
-    "change",
-    "rename",
-    "simple",
-  ];
-
-  const complexCount = complexityIndicators.filter((i) =>
-    description.includes(i)
-  ).length;
-  const simpleCount = simpleIndicators.filter((i) =>
-    description.includes(i)
-  ).length;
-
-  if (complexCount >= 2) return 8;
-  if (complexCount >= 1) return 5;
-  if (simpleCount >= 1) return 2;
-  return 3; // default medium
-}
-
-function inferPriority(
-  whyItMatters: string
-): "Critical" | "High" | "Medium" | "Low" {
-  const text = whyItMatters.toLowerCase();
-
-  const criticalIndicators = [
-    "urgent",
-    "immediately",
-    "critical",
-    "broken",
-    "down",
-    "outage",
-  ];
-  const highIndicators = [
-    "deadline",
-    "launch",
-    "revenue",
-    "compliance",
-    "blocking",
-    "asap",
-  ];
-  const lowIndicators = [
-    "nice to have",
-    "when possible",
-    "eventually",
-    "low priority",
-    "no rush",
-  ];
-
-  if (criticalIndicators.some((i) => text.includes(i))) return "Critical";
-  if (highIndicators.some((i) => text.includes(i))) return "High";
-  if (lowIndicators.some((i) => text.includes(i))) return "Low";
-  return "Medium";
 }
 
 export function shouldBeEpic(totalStoryPoints: number): boolean {
