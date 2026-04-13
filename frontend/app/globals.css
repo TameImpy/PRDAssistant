@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* === Colors from Stitch design system === */
+  --color-background: #f6f6f6;
+  --color-on-primary: #e2ff81;
+  --color-on-error-container: #520c00;
+  --color-secondary-container: #e2e2e2;
+  --color-tertiary-dim: #005865;
+  --color-secondary-fixed: #e2e2e2;
+  --color-tertiary-container: #00e0ff;
+  --color-tertiary-fixed: #00e0ff;
+  --color-surface-bright: #f6f6f6;
+  --color-surface: #f6f6f6;
+  --color-primary-fixed-dim: #c2ed00;
+  --color-primary: #506300;
+  --color-surface-tint: #506300;
+  --color-on-tertiary-fixed: #00363f;
+  --color-on-primary-fixed: #3b4a00;
+  --color-surface-container-low: #f0f1f1;
+  --color-on-surface: #2d2f2f;
+  --color-surface-container-highest: #dbdddd;
+  --color-inverse-primary: #cffc00;
+  --color-primary-dim: #455600;
+  --color-primary-fixed: #cffc00;
+  --color-outline: #757777;
+  --color-error: #b02500;
+  --color-surface-container: #e7e8e8;
+  --color-secondary-fixed-dim: #d4d4d4;
+  --color-secondary-dim: #4f4f4f;
+  --color-on-secondary-fixed-variant: #5b5b5b;
+  --color-on-tertiary-fixed-variant: #005562;
+  --color-secondary: #5b5b5b;
+  --color-primary-container: #cffc00;
+  --color-tertiary-fixed-dim: #00d1ee;
+  --color-inverse-surface: #0c0f0f;
+  --color-inverse-on-surface: #9c9d9d;
+  --color-outline-variant: #acadad;
+  --color-on-tertiary: #dbf8ff;
+  --color-on-background: #2d2f2f;
+  --color-on-error: #ffefec;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-high: #e1e3e3;
+  --color-on-primary-fixed-variant: #546800;
+  --color-tertiary: #006574;
+  --color-on-secondary: #f3f3f3;
+  --color-on-surface-variant: #5a5c5c;
+  --color-surface-variant: #dbdddd;
+  --color-surface-dim: #d2d5d5;
+  --color-on-tertiary-container: #004b57;
+  --color-error-dim: #b92902;
+  --color-on-primary-container: #4b5e00;
+  --color-on-secondary-fixed: #3f3f3f;
+  --color-error-container: #f95630;
+  --color-on-secondary-container: #525252;
+
+  /* === Border radius: sharp, angular (0px) === */
+  --radius: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-full: 0px;
+
+  /* === Typography === */
+  --font-headline: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Space Grotesk", sans-serif;
+}
+
+/* === Neo-brutalist shadows === */
+.neo-brutalist-shadow {
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.neo-brutalist-shadow-lg {
+  box-shadow: 8px 8px 0px 0px #000000;
+}
+
+/* === Technical dot grid background === */
+.technical-grid {
+  background-image: radial-gradient(#acadad 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+body {
+  min-height: max(884px, 100dvh);
+}
