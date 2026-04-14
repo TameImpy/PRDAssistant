@@ -42,4 +42,15 @@ describe("Stakeholder system prompt", () => {
     expect(promptLower).toContain("why");
     expect(promptLower).toContain("success");
   });
+
+  test("instructs the assistant to ask who the request is for", () => {
+    const promptWithMissing = getSystemPrompt("stakeholder", ["requestedBy"]);
+    const promptLower = promptWithMissing.toLowerCase();
+    expect(
+      promptLower.includes("who") &&
+        (promptLower.includes("request is for") ||
+          promptLower.includes("behalf") ||
+          promptLower.includes("requesting"))
+    ).toBe(true);
+  });
 });

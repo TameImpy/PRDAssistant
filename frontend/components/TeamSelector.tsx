@@ -1,6 +1,6 @@
 "use client";
 
-const TEAMS = [
+export const TEAMS = [
   "ELG / LT",
   "Product & Optimisation",
   "Analytics Engineering",

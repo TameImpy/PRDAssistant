@@ -83,4 +83,6 @@ MONDAY_BOARD_ID=           # Commercial Analysts Sprints board ID
 MONDAY_EPICS_BOARD_ID=     # Epics board ID
 MONDAY_BACKLOG_GROUP_ID=   # Backlog group ID on sprints board
 MONDAY_EPICS_BACKLOG_GROUP_ID= # Backlog group ID on epics board
+NEXT_PUBLIC_SUPABASE_URL=      # Supabase project URL
+SUPABASE_SERVICE_ROLE_KEY=     # Supabase service role key (server-side only)
 ```

@@ -15,7 +15,7 @@ const anthropic = new Anthropic({
 
 const EXTRACTION_PROMPT = `Analyze this conversation and extract what information has been captured so far. Return ONLY valid JSON, nothing else:
 
-{"whatTheyNeed":"concise summary or null","whoBenefits":"concise summary or null","whyItMatters":"concise summary or null","successCriteria":"concise summary or null"}
+{"whatTheyNeed":"concise summary or null","whoBenefits":"concise summary or null","whyItMatters":"concise summary or null","successCriteria":"concise summary or null","requestedBy":"name of person requesting (and role/team if mentioned) or null"}
 
 Use null (not the string "null") for any field the user hasn't addressed yet.`;
 
@@ -32,12 +32,13 @@ export async function POST(request: NextRequest) {
       team: string;
     } = body;
 
-    // Step 1: Extract fields using Haiku (fast + cheap)
+    // Step 1: Extract fields using Sonnet
     let fields: ExtractedFields = {
       whatTheyNeed: null,
       whoBenefits: null,
       whyItMatters: null,
       successCriteria: null,
+      requestedBy: null,
     };
 
     // Filter out any empty messages to prevent API errors
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (userMessages.length > 0) {
       try {
         const extractionResponse = await anthropic.messages.create({
-          model: "claude-haiku-4-5-20251001",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 256,
           system: EXTRACTION_PROMPT,
           messages: cleanMessages.map((m) => ({
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
             whoBenefits: parsed.whoBenefits || null,
             whyItMatters: parsed.whyItMatters || null,
             successCriteria: parsed.successCriteria || null,
+            requestedBy: parsed.requestedBy || null,
           };
         }
       } catch (e) {

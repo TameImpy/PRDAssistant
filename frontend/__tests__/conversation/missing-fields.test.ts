@@ -17,7 +17,8 @@ describe("Missing field detection", () => {
     expect(missing).toContain("whoBenefits");
     expect(missing).toContain("whyItMatters");
     expect(missing).toContain("successCriteria");
-    expect(missing).toHaveLength(4);
+    expect(missing).toContain("requestedBy");
+    expect(missing).toHaveLength(5);
   });
 
   test("removes 'whatTheyNeed' from missing when user describes request", () => {

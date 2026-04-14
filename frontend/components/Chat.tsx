@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import type { ConversationMessage } from "@/lib/conversation";
+import type { ExtractedFields } from "@/lib/conversation";
 import type { Ticket } from "@/lib/tickets";
 import { ReviewScreen } from "./ReviewScreen";
 
@@ -13,6 +15,8 @@ type ChatProps = {
 type ChatState = "chatting" | "reviewing" | "confirmed";
 
 export function Chat({ pathway, team }: ChatProps) {
+  const { data: session } = useSession();
+  const [extractedFields, setExtractedFields] = useState<ExtractedFields | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([
     {
       role: "assistant",
@@ -65,6 +69,9 @@ export function Chat({ pathway, team }: ChatProps) {
 
       if (data.isComplete && data.tickets) {
         setTickets(data.tickets);
+        if (data.extractedFields) {
+          setExtractedFields(data.extractedFields);
+        }
         // Don't immediately switch to review — let the user read the summary message first
       }
     } catch (error) {
@@ -87,6 +94,10 @@ export function Chat({ pathway, team }: ChatProps) {
         tickets={tickets}
         pathway={pathway}
         team={team}
+        messages={messages}
+        submittedByName={session?.user?.name || undefined}
+        submittedByEmail={session?.user?.email || undefined}
+        requestedBy={extractedFields?.requestedBy || undefined}
         onBack={() => setState("chatting")}
         onConfirm={(url) => {
           setBoardUrl(url || null);
@@ -106,10 +117,10 @@ export function Chat({ pathway, team }: ChatProps) {
             </h2>
             <p className="font-body text-on-primary-container text-lg mb-8">
               {pathway === "stakeholder"
-                ? "Your request has been submitted to the Commercial Analysts team. It will be reviewed in the next backlog refinement session."
+                ? "Your request has been received and is in the review queue. An analyst will review, shape, and prioritise it. If we need more info, we'll reach out."
                 : "Your ticket has been added to the backlog. It's ready for refinement and sprint planning."}
             </p>
-            {boardUrl && (
+            {boardUrl && pathway === "analyst" && (
               <a
                 href={boardUrl}
                 target="_blank"

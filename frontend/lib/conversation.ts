@@ -8,6 +8,7 @@ export type ExtractedFields = {
   whoBenefits: string | null;
   whyItMatters: string | null;
   successCriteria: string | null;
+  requestedBy: string | null;
 };
 
 const EMPTY_FIELDS: ExtractedFields = {
@@ -15,6 +16,7 @@ const EMPTY_FIELDS: ExtractedFields = {
   whoBenefits: null,
   whyItMatters: null,
   successCriteria: null,
+  requestedBy: null,
 };
 
 export function extractFields(messages: ConversationMessage[]): ExtractedFields {
@@ -41,6 +43,7 @@ const MANDATORY_FIELDS: (keyof ExtractedFields)[] = [
   "whoBenefits",
   "whyItMatters",
   "successCriteria",
+  "requestedBy",
 ];
 
 export function getMissingFields(fields: ExtractedFields): string[] {
@@ -67,6 +70,7 @@ You need to capture the following information through the conversation:
 - Who benefits: who will use this and how does it help them?
 - Why it matters: what problem does this solve or what opportunity does it unlock?
 - What success looks like: how will they know this request has been fulfilled well?
+- Who is requesting this: is this request for them, or are they submitting on behalf of someone else? Capture the name (and role/team if mentioned) of the person the request is for. If they say "it's for me", confirm their name.
 
 ${missingFields.length > 0 ? `You still need to find out about: ${missingFields.join(", ")}. Ask about these naturally — don't list them as a checklist.` : "You have gathered all the key information. Summarise what you've heard back to the user in plain language and ask them to confirm it's correct."}
 

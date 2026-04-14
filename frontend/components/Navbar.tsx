@@ -3,16 +3,26 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { useIsAnalyst } from "@/lib/useIsAnalyst";
 
-const navItems = [
+const publicNavItems = [
   { href: "/submit-request", label: "SUBMIT_REQUEST" },
   { href: "/create-ticket", label: "CREATE_TICKET" },
+];
+
+const analystNavItems = [
   { href: "/mission-control", label: "MISSION_CONTROL" },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { isAnalyst } = useIsAnalyst();
+
+  const navItems = [
+    ...publicNavItems,
+    ...(isAnalyst ? analystNavItems : []),
+  ];
 
   return (
     <header className="bg-[#f6f6f6] fixed top-0 w-full z-50 border-b-4 border-black shadow-[4px_4px_0px_0px_#000000]">
