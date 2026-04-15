@@ -1,4 +1,4 @@
-// GitHub issue: #12 — E2E: Auth gate shows login prompt on protected pages
+// GitHub issue: #33 — E2E: Auth gate shows updated domain restriction
 import { test, expect } from "@playwright/test";
 
 test.describe("Auth gate", () => {
@@ -10,7 +10,7 @@ test.describe("Auth gate", () => {
     await expect(page.getByText("ACCESS_REQUIRED")).toBeVisible();
     await expect(page.getByText("LOGIN_WITH_GOOGLE")).toBeVisible();
     await expect(
-      page.getByText("RESTRICTED TO @IMMEDIATEMEDIA.COM", { exact: false })
+      page.getByText("RESTRICTED TO @IMMEDIATE.CO.UK", { exact: false })
     ).toBeVisible();
   });
 
@@ -21,5 +21,13 @@ test.describe("Auth gate", () => {
 
     await expect(page.getByText("ACCESS_REQUIRED")).toBeVisible();
     await expect(page.getByText("LOGIN_WITH_GOOGLE")).toBeVisible();
+  });
+
+  test("shows ACCESS_REQUIRED on /mission-control when not logged in", async ({
+    page,
+  }) => {
+    await page.goto("/mission-control");
+
+    await expect(page.getByText("ACCESS_REQUIRED")).toBeVisible();
   });
 });

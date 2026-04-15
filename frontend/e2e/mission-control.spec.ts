@@ -1,35 +1,36 @@
-// GitHub issue: #13 — E2E: Mission Control shows coming soon placeholder
+// GitHub issue: #32 — E2E: Mission Control Sprint Overview loads with sub-navigation
 import { test, expect } from "@playwright/test";
 
-test.describe("Mission Control", () => {
-  test("shows MISSION_CONTROL heading", async ({ page }) => {
+test.describe("Mission Control (unauthenticated)", () => {
+  test("requires authentication to access", async ({ page }) => {
     await page.goto("/mission-control");
 
-    await expect(page.getByText("MISSION_CONTROL").first()).toBeVisible();
+    await expect(page.getByText("ACCESS_REQUIRED")).toBeVisible();
+    await expect(page.getByText("LOGIN_WITH_GOOGLE")).toBeVisible();
   });
+});
 
-  test("shows COMING_SOON badge", async ({ page }) => {
-    await page.goto("/mission-control");
-
-    await expect(page.getByText("COMING_SOON")).toBeVisible();
-  });
-
-  test("describes the planned feature", async ({ page }) => {
-    await page.goto("/mission-control");
+test.describe("Mission Control navigation", () => {
+  test("MISSION_CONTROL link is visible in navbar for all users", async ({
+    page,
+  }) => {
+    await page.goto("/");
 
     await expect(
-      page.getByText("live dashboard", { exact: false })
-    ).toBeVisible();
-    await expect(
-      page.getByText("Monday.com", { exact: false })
+      page
+        .getByRole("navigation")
+        .getByRole("link", { name: "MISSION_CONTROL" })
     ).toBeVisible();
   });
 
-  test("shows placeholder panels", async ({ page }) => {
-    await page.goto("/mission-control");
-
-    await expect(page.getByText("RECENTLY_SHIPPED")).toBeVisible();
-    await expect(page.getByText("IN_PROGRESS")).toBeVisible();
-    await expect(page.getByText("UPCOMING")).toBeVisible();
+  test("MISSION_CONTROL nav link routes to /mission-control", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "MISSION_CONTROL" })
+      .click();
+    await expect(page).toHaveURL("/mission-control");
   });
 });
