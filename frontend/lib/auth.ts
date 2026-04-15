@@ -1,4 +1,4 @@
-const ALLOWED_DOMAIN = "immediatemedia.com";
+const ALLOWED_DOMAIN = "immediate.co.uk";
 
 export function isAllowedDomain(email: string): boolean {
   if (!email || !email.includes("@")) return false;
@@ -10,9 +10,6 @@ export const authConfig = {
   callbacks: {
     signIn({ user }: { user: { email?: string | null } }) {
       if (!user.email) return false;
-      // Domain restriction - set ALLOWED_EMAIL_DOMAIN=none in .env.local to disable for testing
-      const envDomain = process.env.ALLOWED_EMAIL_DOMAIN;
-      if (envDomain === "none" || envDomain === "") return true;
       return isAllowedDomain(user.email);
     },
     session({ session, token }: { session: any; token: any }) {

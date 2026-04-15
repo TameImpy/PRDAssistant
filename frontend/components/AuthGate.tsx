@@ -37,7 +37,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               LOGIN_WITH_GOOGLE
             </button>
             <p className="font-label text-xs font-bold uppercase tracking-widest text-outline mt-6">
-              [ RESTRICTED TO @IMMEDIATEMEDIA.COM ]
+              [ RESTRICTED TO @IMMEDIATE.CO.UK ]
             </p>
           </div>
         </div>
