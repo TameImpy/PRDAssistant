@@ -1,11 +1,11 @@
 import { isAllowedDomain } from "@/lib/auth";
 
 describe("Domain validation", () => {
-  test("allows immediatemedia.com emails", () => {
-    expect(isAllowedDomain("matt@immediatemedia.com")).toBe(true);
+  test("allows immediate.co.uk emails", () => {
+    expect(isAllowedDomain("matt@immediate.co.uk")).toBe(true);
   });
 
-  test("rejects non-immediatemedia.com emails", () => {
+  test("rejects non-immediate.co.uk emails", () => {
     expect(isAllowedDomain("someone@gmail.com")).toBe(false);
   });
 
@@ -18,6 +18,6 @@ describe("Domain validation", () => {
   });
 
   test("is case-insensitive", () => {
-    expect(isAllowedDomain("Matt@ImmediateMedia.COM")).toBe(true);
+    expect(isAllowedDomain("Matt@IMMEDIATE.CO.UK")).toBe(true);
   });
 });

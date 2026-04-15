@@ -130,4 +130,94 @@ export class MondayClient {
     }
     return results;
   }
+
+  async getGroups(boardId: string): Promise<{ id: string; title: string }[]> {
+    const query = `query { boards(ids: [${boardId}]) { groups { id title } } }`;
+
+    try {
+      const response = await fetch(MONDAY_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: this.apiToken,
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      if (data.errors) return [];
+
+      return data.data.boards[0]?.groups ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  async getGroupItems(
+    boardId: string,
+    groupId: string
+  ): Promise<SprintItem[]> {
+    const query = `query {
+      boards(ids: [${boardId}]) {
+        groups(ids: ["${groupId}"]) {
+          items_page(limit: 50) {
+            items {
+              id
+              name
+              column_values {
+                id
+                text
+              }
+            }
+          }
+        }
+      }
+    }`;
+
+    try {
+      const response = await fetch(MONDAY_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: this.apiToken,
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      if (data.errors) return [];
+
+      const items =
+        data.data.boards[0]?.groups[0]?.items_page?.items ?? [];
+
+      return items.map((item: any) => {
+        const statusCol = item.column_values?.find(
+          (cv: any) => cv.id === COLUMN_IDS.status
+        );
+        const ownerCol = item.column_values?.find(
+          (cv: any) => cv.id === "person"
+        );
+
+        return {
+          id: item.id,
+          name: item.name,
+          status: statusCol?.text || "Not Started",
+          owner: ownerCol?.text || null,
+        };
+      });
+    } catch {
+      return [];
+    }
+  }
 }
+
+export type SprintItem = {
+  id: string;
+  name: string;
+  status: string;
+  owner: string | null;
+};
