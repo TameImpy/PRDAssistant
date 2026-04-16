@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   getSystemPrompt,
+  getContextAwareSystemPrompt,
   type ConversationMessage,
   type ExtractedFields,
   type Pathway,
 } from "@/lib/conversation";
 import { generateTickets } from "@/lib/tickets";
+import type { PreProcessedContext } from "@/lib/context-preprocess";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -26,19 +28,24 @@ export async function POST(request: NextRequest) {
       messages,
       pathway,
       team,
+      preProcessedContext,
+      rawTranscriptText,
     }: {
       messages: ConversationMessage[];
       pathway: Pathway;
       team: string;
+      preProcessedContext?: PreProcessedContext;
+      rawTranscriptText?: string;
     } = body;
 
     // Step 1: Extract fields using Sonnet
+    // When we have pre-processed context, seed fields from it
     let fields: ExtractedFields = {
-      whatTheyNeed: null,
-      whoBenefits: null,
-      whyItMatters: null,
-      successCriteria: null,
-      requestedBy: null,
+      whatTheyNeed: preProcessedContext?.whatTheyNeed || null,
+      whoBenefits: preProcessedContext?.whoBenefits || null,
+      whyItMatters: preProcessedContext?.whyItMatters || null,
+      successCriteria: preProcessedContext?.successCriteria || null,
+      requestedBy: preProcessedContext?.requestedBy || null,
     };
 
     // Filter out any empty messages to prevent API errors
@@ -65,12 +72,13 @@ export async function POST(request: NextRequest) {
         const jsonMatch = extractionText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
+          // Merge: conversation extraction can fill gaps or override pre-processed fields
           fields = {
-            whatTheyNeed: parsed.whatTheyNeed || null,
-            whoBenefits: parsed.whoBenefits || null,
-            whyItMatters: parsed.whyItMatters || null,
-            successCriteria: parsed.successCriteria || null,
-            requestedBy: parsed.requestedBy || null,
+            whatTheyNeed: parsed.whatTheyNeed || fields.whatTheyNeed || null,
+            whoBenefits: parsed.whoBenefits || fields.whoBenefits || null,
+            whyItMatters: parsed.whyItMatters || fields.whyItMatters || null,
+            successCriteria: parsed.successCriteria || fields.successCriteria || null,
+            requestedBy: parsed.requestedBy || fields.requestedBy || null,
           };
         }
       } catch (e) {
@@ -84,7 +92,10 @@ export async function POST(request: NextRequest) {
     const complete = missingFields.length === 0;
 
     // Step 2: Get conversational response from Sonnet
-    const systemPrompt = getSystemPrompt(pathway, missingFields);
+    // Use context-aware prompt when pre-processed context is available
+    const systemPrompt = preProcessedContext
+      ? getContextAwareSystemPrompt(preProcessedContext, missingFields)
+      : getSystemPrompt(pathway, missingFields);
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -108,6 +119,7 @@ export async function POST(request: NextRequest) {
         whyItMatters: fields.whyItMatters!,
         successCriteria: fields.successCriteria!,
         team,
+        rawTranscriptText,
       });
     }
 

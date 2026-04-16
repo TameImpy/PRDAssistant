@@ -1,5 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { ContextUpload } from "@/components/ContextUpload";
+import type { ContextItem } from "@/lib/context-upload";
+
 export const TEAMS = [
   "ELG / LT",
   "Product & Optimisation",
@@ -15,11 +19,26 @@ export const TEAMS = [
 
 type TeamSelectorProps = {
   pathway: "stakeholder" | "analyst";
-  onSelect: (team: string) => void;
+  onSelect: (team: string, contextItems?: ContextItem[]) => void;
 };
 
 export function TeamSelector({ pathway, onSelect }: TeamSelectorProps) {
   const isStakeholder = pathway === "stakeholder";
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [contextItems, setContextItems] = useState<ContextItem[]>([]);
+
+  function handleTeamClick(team: string) {
+    if (isStakeholder) {
+      onSelect(team);
+    } else {
+      setSelectedTeam(team);
+    }
+  }
+
+  function handleStart() {
+    if (!selectedTeam) return;
+    onSelect(selectedTeam, contextItems.length > 0 ? contextItems : undefined);
+  }
 
   return (
     <section className="px-6 py-24">
@@ -40,13 +59,34 @@ export function TeamSelector({ pathway, onSelect }: TeamSelectorProps) {
             {TEAMS.map((team) => (
               <button
                 key={team}
-                onClick={() => onSelect(team)}
-                className="p-4 border-2 border-black bg-surface-container-lowest font-headline font-bold uppercase tracking-tighter text-left hover:bg-primary-container hover:text-on-primary-container transition-colors transform hover:-translate-x-1 hover:-translate-y-1"
+                onClick={() => handleTeamClick(team)}
+                className={`p-4 border-2 border-black font-headline font-bold uppercase tracking-tighter text-left transition-colors transform hover:-translate-x-1 hover:-translate-y-1 ${
+                  selectedTeam === team
+                    ? "bg-primary-container text-on-primary-container border-4"
+                    : "bg-surface-container-lowest hover:bg-primary-container hover:text-on-primary-container"
+                }`}
               >
                 {team}
               </button>
             ))}
           </div>
+
+          {/* Context upload — analyst path only */}
+          {!isStakeholder && (
+            <>
+              <ContextUpload items={contextItems} onChange={setContextItems} />
+
+              <div className="mt-8">
+                <button
+                  onClick={handleStart}
+                  disabled={!selectedTeam}
+                  className="w-full px-8 py-4 bg-black text-white border-4 border-black font-headline font-black uppercase tracking-widest text-lg hover:bg-primary-container hover:text-on-primary-container transition-colors neo-brutalist-shadow disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {contextItems.length > 0 ? "START_WITH_CONTEXT" : "START_FROM_SCRATCH"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>

@@ -6,6 +6,7 @@ export type TicketInput = {
   whyItMatters: string;
   successCriteria: string;
   team: string;
+  rawTranscriptText?: string;
 };
 
 export type Ticket = {
@@ -56,6 +57,10 @@ export async function generateTickets(input: TicketInput): Promise<Ticket[]> {
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
+    const transcriptBlock = input.rawTranscriptText
+      ? `\n\nOriginal source material (call transcripts, emails, or Teams chats) — use this to ground acceptance criteria in specific details, exact data points, deadlines, and stakeholder quotes:\n\n${input.rawTranscriptText}`
+      : "";
+
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 2048,
@@ -69,7 +74,7 @@ What they need: ${input.whatTheyNeed}
 Who benefits: ${input.whoBenefits}
 Why it matters: ${input.whyItMatters}
 Success criteria: ${input.successCriteria}
-Team: ${input.team}`,
+Team: ${input.team}${transcriptBlock}`,
         },
       ],
     });

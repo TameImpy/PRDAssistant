@@ -13,7 +13,7 @@ export default function SubmitRequestPage() {
       {team ? (
         <Chat pathway="stakeholder" team={team} />
       ) : (
-        <TeamSelector pathway="stakeholder" onSelect={setTeam} />
+        <TeamSelector pathway="stakeholder" onSelect={(team) => setTeam(team)} />
       )}
     </AuthGate>
   );

@@ -54,6 +54,8 @@ export function isConversationComplete(fields: ExtractedFields): boolean {
   return getMissingFields(fields).length === 0;
 }
 
+import type { PreProcessedContext } from "@/lib/context-preprocess";
+
 export type Pathway = "stakeholder" | "analyst";
 
 export function getSystemPrompt(
@@ -96,6 +98,56 @@ You should use proper agile terminology throughout. Your job is to help the anal
 ${missingFields.length > 0 ? `You still need to capture: ${missingFields.join(", ")}. Ask about these.` : "You have all the information needed. Summarise the ticket(s) you'll create and ask the analyst to confirm."}
 
 Guidelines:
+- If the total work exceeds 13 story points, suggest breaking it into an epic with constituent stories
+- Be concise and technical — the analyst knows agile
+- Ask about dependencies explicitly — this is a mandatory field
+- Suggest story points based on the complexity described, but let the analyst override
+- Help refine acceptance criteria to be specific and testable`;
+}
+
+export function getContextAwareSystemPrompt(
+  context: PreProcessedContext,
+  missingFields: string[]
+): string {
+  const summaryParts: string[] = [];
+
+  if (context.whatTheyNeed) summaryParts.push(`**What they need:** ${context.whatTheyNeed}`);
+  if (context.whoBenefits) summaryParts.push(`**Who benefits:** ${context.whoBenefits}`);
+  if (context.whyItMatters) summaryParts.push(`**Why it matters:** ${context.whyItMatters}`);
+  if (context.successCriteria) summaryParts.push(`**Success criteria:** ${context.successCriteria}`);
+  if (context.requestedBy) summaryParts.push(`**Requested by:** ${context.requestedBy}`);
+  if (context.keyDecisions.length > 0) summaryParts.push(`**Key decisions:** ${context.keyDecisions.join("; ")}`);
+  if (context.constraints.length > 0) summaryParts.push(`**Constraints:** ${context.constraints.join("; ")}`);
+  if (context.deadlines.length > 0) summaryParts.push(`**Deadlines:** ${context.deadlines.join("; ")}`);
+  if (context.participants.length > 0) summaryParts.push(`**Participants:** ${context.participants.join("; ")}`);
+
+  const openQuestionsBlock = context.openQuestions.length > 0
+    ? `\n\nOpen questions identified from the source material:\n${context.openQuestions.map((q) => `- ${q}`).join("\n")}`
+    : "";
+
+  const missingBlock = missingFields.length > 0
+    ? `\n\nFields still missing that you must ask about: ${missingFields.join(", ")}.`
+    : "\n\nAll required fields have been captured from the source material. Summarise the ticket(s) you'll create and ask the analyst to confirm.";
+
+  return `You are an assistant helping a Commercial Analyst at Immediate Media create well-structured agile tickets.
+
+The analyst has uploaded prior context (call transcripts, emails, or Teams chats). You have already analysed this material. Here is what was extracted:
+
+${summaryParts.join("\n")}
+${openQuestionsBlock}
+${missingBlock}
+
+Your first message must be a concise summary of what you understood from the uploaded context, followed by targeted questions about the gaps and ambiguities listed above. Do not use a generic greeting. Do not re-ask about information already captured. Never repeat the analyst's own words back as a question.
+
+You should use proper agile terminology throughout. Your job is to help the analyst define:
+- User story in "As a [persona], I want [goal] so that [reason]" format
+- Acceptance criteria in Given-When-Then (BDD) format
+- Story point estimate using the scale: 1 (trivial, 0.5 days), 2 (small, 1 day), 3 (medium, 1.5 days), 5 (moderate, 3 days), 8 (large, 5 days), 13 (very large, 7+ days)
+- Ticket type: Story, Bug, or Spike
+- Dependencies (mandatory — any blockers or required inputs from other teams)
+
+Guidelines:
+- Reference specific details from the source material when asking clarifying questions
 - If the total work exceeds 13 story points, suggest breaking it into an epic with constituent stories
 - Be concise and technical — the analyst knows agile
 - Ask about dependencies explicitly — this is a mandatory field
