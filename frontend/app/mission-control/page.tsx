@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useIsAnalyst } from "@/lib/useIsAnalyst";
 import { AuthGate } from "@/components/AuthGate";
 import { OpenRequests } from "@/components/OpenRequests";
@@ -54,7 +55,7 @@ export default function MissionControlPage() {
             {isAnalyst && (
               <button
                 onClick={() => setActivePage("open-requests")}
-                className={`flex-1 p-4 font-headline font-bold uppercase tracking-widest text-sm transition-colors ${
+                className={`flex-1 p-4 font-headline font-bold uppercase tracking-widest text-sm transition-colors border-r-4 border-black ${
                   activePage === "open-requests"
                     ? "bg-primary-container text-on-primary-container"
                     : "bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container"
@@ -62,6 +63,14 @@ export default function MissionControlPage() {
               >
                 OPEN_REQUESTS
               </button>
+            )}
+            {isAnalyst && (
+              <Link
+                href="/mission-control/boards"
+                className="flex-1 p-4 font-headline font-bold uppercase tracking-widest text-sm transition-colors bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container text-center"
+              >
+                BOARDS
+              </Link>
             )}
           </div>
 
