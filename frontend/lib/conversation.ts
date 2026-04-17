@@ -111,15 +111,15 @@ export function getContextAwareSystemPrompt(
 ): string {
   const summaryParts: string[] = [];
 
-  if (context.whatTheyNeed) summaryParts.push(`**What they need:** ${context.whatTheyNeed}`);
-  if (context.whoBenefits) summaryParts.push(`**Who benefits:** ${context.whoBenefits}`);
-  if (context.whyItMatters) summaryParts.push(`**Why it matters:** ${context.whyItMatters}`);
-  if (context.successCriteria) summaryParts.push(`**Success criteria:** ${context.successCriteria}`);
-  if (context.requestedBy) summaryParts.push(`**Requested by:** ${context.requestedBy}`);
-  if (context.keyDecisions.length > 0) summaryParts.push(`**Key decisions:** ${context.keyDecisions.join("; ")}`);
-  if (context.constraints.length > 0) summaryParts.push(`**Constraints:** ${context.constraints.join("; ")}`);
-  if (context.deadlines.length > 0) summaryParts.push(`**Deadlines:** ${context.deadlines.join("; ")}`);
-  if (context.participants.length > 0) summaryParts.push(`**Participants:** ${context.participants.join("; ")}`);
+  if (context.whatTheyNeed) summaryParts.push(`What they need: ${context.whatTheyNeed}`);
+  if (context.whoBenefits) summaryParts.push(`Who benefits: ${context.whoBenefits}`);
+  if (context.whyItMatters) summaryParts.push(`Why it matters: ${context.whyItMatters}`);
+  if (context.successCriteria) summaryParts.push(`Success criteria: ${context.successCriteria}`);
+  if (context.requestedBy) summaryParts.push(`Requested by: ${context.requestedBy}`);
+  if (context.keyDecisions.length > 0) summaryParts.push(`Key decisions: ${context.keyDecisions.join("; ")}`);
+  if (context.constraints.length > 0) summaryParts.push(`Constraints: ${context.constraints.join("; ")}`);
+  if (context.deadlines.length > 0) summaryParts.push(`Deadlines: ${context.deadlines.join("; ")}`);
+  if (context.participants.length > 0) summaryParts.push(`Participants: ${context.participants.join("; ")}`);
 
   const openQuestionsBlock = context.openQuestions.length > 0
     ? `\n\nOpen questions identified from the source material:\n${context.openQuestions.map((q) => `- ${q}`).join("\n")}`
@@ -137,7 +137,9 @@ ${summaryParts.join("\n")}
 ${openQuestionsBlock}
 ${missingBlock}
 
-Your first message must be a concise summary of what you understood from the uploaded context, followed by targeted questions about the gaps and ambiguities listed above. Do not use a generic greeting. Do not re-ask about information already captured. Never repeat the analyst's own words back as a question.
+Your first message must be a concise summary of what you understood from the uploaded context, followed by targeted questions about the gaps and ambiguities listed above. End your message with an inviting question like "Shall we work through these?" or "Ready to fill in the gaps?" to prompt the analyst to respond. Do not use a generic greeting. Do not re-ask about information already captured. Never repeat the analyst's own words back as a question.
+
+IMPORTANT: Do not use markdown formatting in your responses. No asterisks for bold (**text**), no heading markers (#), no backticks. Use plain text only — the chat interface does not render markdown.
 
 You should use proper agile terminology throughout. Your job is to help the analyst define:
 - User story in "As a [persona], I want [goal] so that [reason]" format

@@ -97,14 +97,19 @@ export async function POST(request: NextRequest) {
       ? getContextAwareSystemPrompt(preProcessedContext, missingFields)
       : getSystemPrompt(pathway, missingFields);
 
+    // When context exists but no conversation yet, send a synthetic first
+    // message so Claude has something to respond to with its summary
+    const chatMessages = cleanMessages.length > 0
+      ? cleanMessages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))
+      : preProcessedContext
+        ? [{ role: "user" as const, content: "I've uploaded context from a call/email/chat. Please review what you've extracted and let me know what you still need." }]
+        : [{ role: "user" as const, content: "Hello" }];
+
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
       system: systemPrompt,
-      messages: cleanMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages: chatMessages,
     });
 
     const assistantMessage =
