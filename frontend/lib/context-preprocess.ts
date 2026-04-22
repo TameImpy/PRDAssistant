@@ -40,7 +40,7 @@ Analyze all provided context and extract structured information. Return ONLY val
   "whatTheyNeed": "concise summary of the data request or null if unclear",
   "whoBenefits": "who will use this and how, or null",
   "whyItMatters": "the problem this solves or opportunity it unlocks, or null",
-  "successCriteria": "how they'll know the request is fulfilled, or null",
+  "successCriteria": "how they'll know the request is fulfilled WELL — this must be a measurable or observable outcome (e.g. 'accuracy within 2%', 'takes under 5 minutes to review', 'no correction emails needed'), NOT a restatement of the requirements. If the source material only describes what they want built but never says what good looks like, use null",
   "requestedBy": "name and role/team of the person requesting, or null",
   "keyDecisions": ["decisions already made in the conversation"],
   "openQuestions": ["things that are ambiguous or need clarification"],
