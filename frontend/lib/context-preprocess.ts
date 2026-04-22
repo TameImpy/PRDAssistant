@@ -53,7 +53,9 @@ Rules:
 - Use null (not the string "null") for fields you cannot determine from the source material
 - Use empty arrays [] for list fields with no entries
 - Be concise but specific — include exact details, names, dates, and numbers from the source
-- For openQuestions, identify things the analyst would need to clarify before creating tickets
+- For openQuestions, ONLY include things the analyst needs to clarify for ticket creation — focus on the five core fields (whatTheyNeed, whoBenefits, whyItMatters, successCriteria, requestedBy). Do not include implementation-detail questions (API credentials, exact column names, technical setup)
+- Filter out noise: ignore tangential chat (office gossip, unrelated questions), asides ("could you also check..."), and future scope ("maybe in v2"). These are NOT requirements
+- For constraints, only include things that directly affect the deliverable — not speculative future changes
 - Do not invent information not present in the source material`;
 
 type ContextInput = {
