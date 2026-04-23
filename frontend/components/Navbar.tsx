@@ -9,6 +9,7 @@ const navItems = [
   { href: "/submit-request", label: "SUBMIT_REQUEST" },
   { href: "/create-ticket", label: "CREATE_TICKET" },
   { href: "/mission-control", label: "MISSION_CONTROL" },
+  { href: "/test-page-2", label: "TEST_PAGE_2" },
 ];
 
 export function Navbar() {
