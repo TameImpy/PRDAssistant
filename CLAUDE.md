@@ -1,8 +1,13 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Project Overview
 
-**DATA_WORKSHOP** is an internal web app for Immediate Media's Commercial Analysts team and wider stakeholders. It uses a conversational AI agent (Claude Sonnet 4) to interview users about data-related requests, structure the output into well-formed agile tickets (stories, epics, bugs, spikes), and push them to Monday.com via the GraphQL API.
+**DATA_WORKSHOP** is an internal web app for Immediate Media's Commercial Analysts team and wider stakeholders. It has two main capabilities:
+
+1. **Ticket creation** — A conversational AI agent (Claude Sonnet 4) interviews users about data-related requests, structures the output into well-formed agile tickets, and pushes them to Monday.com via the GraphQL API.
+2. **Insights tools** — A growing suite of AI-powered tools for the Insights team, accessed via `/insights`. The first tool is UC-005: Survey Questionnaire Drafting (`/insights/survey-questionnaire`) — an intake form that generates a structured survey questionnaire via two sequential Anthropic API calls (generation + silent QA pass), with an inline editor, learning loop (Supabase `edit_logs`), and `.docx` download.
 
 The full project overview lives at `docs/PROJECT_OVERVIEW.md`. Read it before making any architectural or design decisions.
 
@@ -33,12 +38,14 @@ Use this as the visual foundation. Do not introduce border-radius, gradients, or
 
 ## App Structure
 
-Three main sections:
+Four main sections:
 1. **SUBMIT_REQUEST** — stakeholder path (plain language, no agile jargon). Submissions land in the Open Requests queue for analyst review before reaching Monday.com.
 2. **CREATE_TICKET** — analyst path (full agile detail: story points, acceptance criteria, BDD). Goes direct to Monday.com backlog.
 3. **MISSION_CONTROL** — analyst hub with two sub-pages:
    - **Sprint Overview** (all authenticated users) — live view of current sprint + recently shipped items from Monday.com, with AI-generated summary of shipped work
    - **Open Requests** (analyst only) — review queue for stakeholder submissions. Analysts can edit, approve (submit to Monday.com), or reject with reason.
+4. **INSIGHTS** (`/insights`) — hub page for Insights team tools. Each tool is a sub-route. Current tools:
+   - **Survey Questionnaire Drafting** (`/insights/survey-questionnaire`) — UC-005. Two-pass AI generation (Sonnet with extended thinking → silent QA call), inline editor, Supabase edit log, `.docx` download via `docx` npm package.
 
 ## Key Principles
 
@@ -88,11 +95,20 @@ npm run dev
 # Build for production
 npm run build
 
-# Run unit tests
+# Run unit tests (Jest)
 npm test
 
-# Run E2E tests
+# Run a single test file
+npx jest __tests__/boards.test.ts
+
+# Run integration tests (requires live dev server on localhost:3000)
+TEST_INTEGRATION=true npm run test:integration
+
+# Run E2E tests (Playwright — starts dev server automatically)
 npm run test:e2e
+
+# Run E2E tests in interactive UI mode
+npm run test:e2e:ui
 
 # Deploy (via Vercel CLI or git push)
 vercel
@@ -116,3 +132,27 @@ MONDAY_EPICS_BACKLOG_GROUP_ID= # Epics backlog group ID (optional)
 NEXT_PUBLIC_SUPABASE_URL=      # Supabase project URL
 SUPABASE_SERVICE_ROLE_KEY=     # Supabase service role key (server-side only)
 ```
+
+## AI Model Usage
+
+- **Claude Sonnet 4** (`claude-sonnet-4-20250514`) — conversation, ticket generation, survey questionnaire generation (with extended thinking: `budget_tokens: 8000`, `max_tokens: 16000`), and survey QA pass (`max_tokens: 8000`, no extended thinking)
+- **Claude Haiku 4.5** (`claude-haiku-4-5-20251001`) — context pre-processing and sprint summaries (lighter tasks, lower cost)
+
+## Key Architectural Patterns
+
+**Adding a new feature:** Follow the Board Management pattern — `lib/{feature}.ts` (business logic) → `app/api/{feature}/route.ts` (API routes) → `app/{feature}/page.tsx` (page) → `components/{Feature}.tsx` (UI) → `supabase/migrations/NNN_*.sql` (schema).
+
+**Tailwind v4:** Uses `@theme inline { }` block in `globals.css` for design tokens. There is no `tailwind.config.ts`. Do not create one.
+
+**Auth:** Keep `lib/auth.ts` (config) separate from `lib/auth-provider.ts` (Google provider wiring) — separation required for Jest testability (ESM import issues).
+
+**Tests:** Unit tests in `__tests__/*.test.ts` mock Supabase via Jest. Integration tests that need a live server are gated behind `TEST_INTEGRATION=true`. E2E tests in `e2e/*.spec.ts` use Playwright.
+
+**Supabase schema:** `frontend/supabase/migrations/` — add a new numbered migration file for every schema change. Tables: `requests`, `analysts`, `sprint_summaries`, `edit_logs` (UC-005 learning loop).
+
+## Git Workflow
+
+- `origin` → `BiancaReh/PRDAssistant` (Bianca's fork — all pushes go here)
+- `upstream` → `TameImpy/PRDAssistant` (original repo — pull updates from here, PR into here when ready)
+- Working branch: `feature/new_feature_Insights`
+- GitHub CLI available at: `C:\Users\bianca.rehle\gh-cli\bin\gh.exe`
