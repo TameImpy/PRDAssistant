@@ -19,7 +19,7 @@ export function Navbar() {
 
   return (
     <header className="bg-[#f6f6f6] fixed top-0 w-full z-50 border-b-4 border-black shadow-[4px_4px_0px_0px_#000000]">
-      <nav className="flex justify-between items-center px-6 h-20 max-w-full">
+      <nav className="relative flex items-center px-6 h-20 max-w-full">
         <Link href="/" className="flex items-center gap-2">
           <svg
             className="w-6 h-6 text-[#cffc00]"
@@ -39,7 +39,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8 font-headline uppercase tracking-tighter font-bold text-sm">
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 font-headline uppercase tracking-tighter font-bold text-sm">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -58,7 +58,7 @@ export function Navbar() {
           })}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 ml-auto">
           {session?.user ? (
             <>
               <span className="hidden md:inline font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant">
