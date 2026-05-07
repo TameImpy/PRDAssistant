@@ -1,11 +1,24 @@
+"use client";
+
 import { AuthGate } from "@/components/AuthGate";
+import { SurveyIntakeForm, SurveyFormData } from "@/components/SurveyIntakeForm";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function SurveyQuestionnairePage() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  function handleSubmit(data: SurveyFormData) {
+    setIsLoading(true);
+    // Generation logic will be wired up in issue 3
+    console.log("Form submitted:", data);
+    setIsLoading(false);
+  }
+
   return (
     <AuthGate>
       <section className="px-6 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <div className="mb-8">
             <Link
               href="/insights"
@@ -21,11 +34,7 @@ export default function SurveyQuestionnairePage() {
             </p>
           </div>
 
-          <div className="border-4 border-black bg-surface-container-lowest neo-brutalist-shadow p-12 text-center">
-            <p className="font-headline font-bold text-xl uppercase tracking-tighter text-on-surface-variant">
-              COMING SOON — INTAKE FORM BUILDING NOW
-            </p>
-          </div>
+          <SurveyIntakeForm onSubmit={handleSubmit} isLoading={isLoading} />
         </div>
       </section>
     </AuthGate>

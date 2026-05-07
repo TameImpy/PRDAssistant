@@ -62,5 +62,31 @@ export async function parseFile(file: File): Promise<string> {
     return result.value;
   }
 
+  if (name.endsWith(".pdf")) {
+    const pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, useWorkerFetch: false, isEvalSupported: false, useSystemFonts: true }).promise;
+    const pages: string[] = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      pages.push(content.items.map((item: { str?: string }) => item.str ?? "").join(" "));
+    }
+    return pages.join("\n");
+  }
+
   throw new Error(`Unsupported file type: ${file.name}`);
+}
+
+export function validateSurveyFile(file: File): { valid: boolean; error?: string } {
+  const name = file.name.toLowerCase();
+  const allowed = [".pdf", ".docx"];
+  if (!allowed.some((ext) => name.endsWith(ext))) {
+    return { valid: false, error: "Unsupported file type. Allowed: PDF, DOCX" };
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    return { valid: false, error: "File too large. Maximum size is 10MB." };
+  }
+  return { valid: true };
 }
