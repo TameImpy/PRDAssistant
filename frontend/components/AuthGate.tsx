@@ -2,8 +2,12 @@
 
 import { useSession, signIn } from "next-auth/react";
 
+const DEV_BYPASS = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
+
+  if (DEV_BYPASS) return <>{children}</>;
 
   if (status === "loading") {
     return (

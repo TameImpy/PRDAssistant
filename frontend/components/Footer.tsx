@@ -19,7 +19,7 @@ export function Footer() {
               MISSION_CONTROL
             </Link>
             <Link href="/insights" className="hover:italic">
-              INSIGHTS
+              INSIGHTS_TOOLS
             </Link>
           </div>
         </div>

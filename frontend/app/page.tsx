@@ -90,7 +90,10 @@ export default function Home() {
             <div className="text-left">
               <span className="font-black uppercase tracking-widest text-lg block">INSIGHTS_TOOLS</span>
               <span className="font-body text-sm font-normal normal-case tracking-normal text-on-surface-variant">
-                AI-powered tools for the Insights team — survey drafting and more.
+                A suite of AI-powered tools for research and insight work. From proposal writing to survey drafting.
+              </span>
+              <span className="mt-3 font-label text-xs font-bold uppercase tracking-widest text-primary border-t border-black/20 pt-3 block">
+                Best for: Insights Team, anyone doing market research
               </span>
             </div>
           </Link>

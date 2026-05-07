@@ -13,11 +13,6 @@ export default function SurveyQuestionnairePage() {
             >
               ← INSIGHTS_TOOLS
             </Link>
-            <div className="mt-2">
-              <span className="font-label text-xs font-black px-2 py-1 bg-black text-white mb-4 inline-block">
-                UC-005
-              </span>
-            </div>
             <h1 className="font-headline font-black text-4xl uppercase tracking-tighter mt-4">
               SURVEY_QUESTIONNAIRE
             </h1>
