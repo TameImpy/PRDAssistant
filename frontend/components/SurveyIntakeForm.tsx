@@ -115,6 +115,12 @@ export function SurveyIntakeForm({ onSubmit, isLoading }: Props) {
   const [fileErrors, setFileErrors] = useState({ brief: "", previousQuestionnaires: "", brandGuidelines: "" });
   const [noInputError, setNoInputError] = useState(false);
 
+  function handleClear() {
+    setForm(emptyForm());
+    setFileErrors({ brief: "", previousQuestionnaires: "", brandGuidelines: "" });
+    setNoInputError(false);
+  }
+
   const briefRef = useRef<HTMLInputElement>(null);
   const prevRef = useRef<HTMLInputElement>(null);
   const brandRef = useRef<HTMLInputElement>(null);
@@ -311,14 +317,24 @@ export function SurveyIntakeForm({ onSubmit, isLoading }: Props) {
         </div>
       )}
 
-      {/* Submit */}
-      <button
-        onClick={handleSubmit}
-        disabled={isLoading}
-        className="bg-black text-white px-10 py-5 border-4 border-black font-headline font-black uppercase tracking-widest text-lg hover:bg-primary-container hover:text-black transition-colors transform hover:-translate-x-1 hover:-translate-y-1 neo-brutalist-shadow disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-      >
-        {isLoading ? "GENERATING..." : "GENERATE_QUESTIONNAIRE →"}
-      </button>
+      {/* Submit + Clear */}
+      <div className="flex gap-4">
+        <button
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="flex-1 bg-black text-white px-10 py-5 border-4 border-black font-headline font-black uppercase tracking-widest text-lg hover:bg-primary-container hover:text-black transition-colors transform hover:-translate-x-1 hover:-translate-y-1 neo-brutalist-shadow disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+        >
+          {isLoading ? "GENERATING..." : "GENERATE_QUESTIONNAIRE →"}
+        </button>
+        <button
+          type="button"
+          onClick={handleClear}
+          disabled={isLoading}
+          className="px-6 py-5 border-4 border-black font-headline font-black uppercase tracking-widest text-sm bg-surface-container-lowest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          CLEAR_ALL
+        </button>
+      </div>
     </div>
   );
 }
