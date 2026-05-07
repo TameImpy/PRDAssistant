@@ -1,0 +1,7 @@
+
+# macOS
+.DS_Store
+
+# Test outputs
+frontend/playwright-report/
+frontend/test-results/

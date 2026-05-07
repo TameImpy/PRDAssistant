@@ -63,3 +63,23 @@ This is a good pattern for any NextAuth project: keep the testable logic separat
 **What happened:** Building the conversation engine, we initially considered using regex or NLP to extract structured fields from user messages. This would have been fragile and complex.
 
 **Why it matters:** The conversation engine's `extractFields()` function does simple extraction locally (first user message = what they need), but the real intelligence comes from Claude itself via the system prompt. The system prompt tells Claude which fields are still missing, and Claude asks the right follow-up questions. This keeps our code simple and testable while leveraging the LLM for the hard part (understanding natural language).
+
+---
+
+### 2026-04-17 — Supabase: tables created via SQL Editor may not appear in PostgREST schema cache
+
+**What happened:** Created `boards`, `groups`, and `items` tables via the Supabase SQL Editor. The SQL ran successfully, `information_schema.tables` confirmed they existed, but the Supabase API returned "Could not find the table 'public.boards' in the schema cache". The existing `requests` table worked fine.
+
+**Why it matters:** PostgREST (which powers the Supabase client library) maintains a schema cache that can get out of sync when tables are created via raw SQL. `NOTIFY pgrst, 'reload schema'`, granting permissions, and even a full project restart didn't fix it. The tables weren't visible in the Table Editor GUI either, despite `information_schema` saying they existed — suggesting the initial migration may have partially failed in a way that left phantom table metadata.
+
+**How we fixed it:** Dropped all three tables (`DROP TABLE IF EXISTS ... CASCADE`) and recreated them in a single SQL block that also included the `GRANT ALL` statements and `NOTIFY pgrst, 'reload schema'`. Tables appeared in the Table Editor immediately and the API worked. The key lesson: if Supabase tables aren't showing up, drop and recreate rather than trying to fix the cache — it's faster and more reliable.
+
+---
+
+### 2026-05-01 — CI: ts-node must be in package.json for GitHub Actions
+
+**What happened:** The CI pipeline failed on the unit tests step with "Cannot find package 'ts-node'". Jest needs `ts-node` to parse `jest.config.ts`, and it worked locally because `ts-node` was installed globally. On GitHub Actions (a clean machine), only packages in `package.json` exist.
+
+**Why it matters:** Classic "works on my machine" bug. Any tool your project uses must be explicitly listed as a dependency. Global installs mask missing dependencies that will break in CI, on a teammate's machine, or in production.
+
+**How we fixed it:** Added `ts-node` to `devDependencies` in `package.json`. CI passed on the next run.
