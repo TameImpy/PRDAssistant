@@ -18,6 +18,9 @@ export function Footer() {
             <Link href="/mission-control" className="hover:italic">
               MISSION_CONTROL
             </Link>
+            <Link href="/insights" className="hover:italic">
+              INSIGHTS_TOOLS
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-8 font-headline text-xs font-bold uppercase tracking-widest text-white">
