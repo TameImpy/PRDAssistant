@@ -7,16 +7,23 @@ import Link from "next/link";
 import { useState } from "react";
 import type { ParsedQuestionnaire } from "@/lib/survey-parser";
 
+function safeInt(val: string): number | undefined {
+  const n = parseInt(val, 10);
+  return isNaN(n) ? undefined : n;
+}
+
 export default function SurveyQuestionnairePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [questionnaire, setQuestionnaire] = useState<ParsedQuestionnaire | null>(null);
   const [error, setError] = useState("");
+  const [qaStatus, setQaStatus] = useState<"ok" | "network_error" | "parse_error" | null>(null);
   const [formData, setFormData] = useState<SurveyFormData | null>(null);
 
   async function handleSubmit(data: SurveyFormData) {
     setIsLoading(true);
     setError("");
     setQuestionnaire(null);
+    setQaStatus(null);
     setFormData(data);
 
     try {
@@ -26,12 +33,21 @@ export default function SurveyQuestionnairePage() {
         body: JSON.stringify(data),
       });
 
-      if (!res.ok) throw new Error("Generation failed");
+      let json: { questionnaire?: ParsedQuestionnaire; qaSkipped?: boolean; error?: string };
+      try {
+        json = await res.json();
+      } catch {
+        throw new Error("The server returned an unreadable response. Please try again.");
+      }
 
-      const json = await res.json();
-      setQuestionnaire(json.questionnaire);
-    } catch {
-      setError("Something went wrong generating the questionnaire. Please try again.");
+      if (!res.ok) {
+        throw new Error(json.error || "Generation failed. Please try again.");
+      }
+
+      setQuestionnaire(json.questionnaire!);
+      setQaStatus(json.qaStatus ?? "ok");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -77,13 +93,29 @@ export default function SurveyQuestionnairePage() {
             </div>
           )}
 
+          {/* QA status warnings */}
+          {qaStatus === "network_error" && questionnaire && !isLoading && (
+            <div className="border-4 border-amber-500 bg-amber-50 p-4 mb-6">
+              <p className="font-label text-xs font-black uppercase tracking-widest text-amber-700">
+                Note: The QA review could not run due to a service error — showing the unreviewed draft.
+              </p>
+            </div>
+          )}
+          {qaStatus === "parse_error" && questionnaire && !isLoading && (
+            <div className="border-4 border-amber-500 bg-amber-50 p-4 mb-6">
+              <p className="font-label text-xs font-black uppercase tracking-widest text-amber-700">
+                Note: The QA review returned an unexpected result — showing the original draft instead.
+              </p>
+            </div>
+          )}
+
           {/* Preview panel */}
           {questionnaire && !isLoading && (
             <div className="mb-12">
               <SurveyPreview
                 questionnaire={questionnaire}
-                minQuestions={formData?.minQuestions ? parseInt(formData.minQuestions) : undefined}
-                maxQuestions={formData?.maxQuestions ? parseInt(formData.maxQuestions) : undefined}
+                minQuestions={safeInt(formData?.minQuestions ?? "")}
+                maxQuestions={safeInt(formData?.maxQuestions ?? "")}
               />
             </div>
           )}

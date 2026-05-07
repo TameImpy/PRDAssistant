@@ -19,7 +19,7 @@ Rules:
 - Never reference a question number in routing that does not exist in the questionnaire
 - Begin the questionnaire with an intro message (brief, friendly, states estimated time)
 - If brand guidelines or writing style & tone documents are provided, adapt question language, style, and tone accordingly
-- If new wave = Yes and a previous questionnaire is uploaded, preserve exact wording of NPS and tracker questions — do not paraphrase or rewrite these
+- If new wave = Yes and a previous questionnaire is uploaded, preserve exact wording of NPS and tracker questions — do not paraphrase or rewrite these. Mark each preserved question with [TRACKER] in the question text.
 - If a target question count range is provided, stay within that range
 - If the input is too sparse, flag the assumptions you are making rather than inventing context
 
@@ -57,19 +57,21 @@ function buildUserPrompt(data: SurveyFormData): string {
   const prevText = data.previousQuestionnairesFiles.map((f) => f.text).join("\n\n") || "not provided";
   const brandText = data.brandGuidelinesFiles.map((f) => f.text).join("\n\n") || "not provided";
 
+  const min = parseInt(data.minQuestions);
+  const max = parseInt(data.maxQuestions);
   const questionRange =
-    data.minQuestions && data.maxQuestions
-      ? `${data.minQuestions} to ${data.maxQuestions} questions`
-      : data.minQuestions
-      ? `at least ${data.minQuestions} questions`
-      : data.maxQuestions
-      ? `no more than ${data.maxQuestions} questions`
+    !isNaN(min) && !isNaN(max)
+      ? `${min} to ${max} questions`
+      : !isNaN(min)
+      ? `at least ${min} questions`
+      : !isNaN(max)
+      ? `no more than ${max} questions`
       : "no range specified";
 
   const newWaveSection =
     data.newWave === "yes"
       ? data.previousQuestionnairesFiles.length > 0
-        ? "New wave survey: Yes\nPreserve exact wording of NPS and tracker questions from the previous questionnaire above."
+        ? "New wave survey: Yes\nPreserve exact wording of NPS and tracker questions from the previous questionnaire above. Mark each with [TRACKER] in the question text."
         : "New wave survey: Yes\nFlag that prior wording cannot be matched — no previous questionnaire was provided."
       : "New wave survey: No";
 
@@ -92,48 +94,68 @@ ${data.exampleQuestions || "none provided"}
 ${newWaveSection}`;
 }
 
+function extractText(response: Anthropic.Message): string {
+  return response.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+}
+
 export async function POST(request: NextRequest) {
+  let data: SurveyFormData;
+
   try {
-    const data: SurveyFormData = await request.json();
+    data = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
-    const userPrompt = buildUserPrompt(data);
-
-    // Pass 1: generation with extended thinking
+  // Pass 1: generation with extended thinking
+  let generationText: string;
+  try {
     const generationResponse = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 16000,
       thinking: { type: "enabled", budget_tokens: 8000 },
       system: GENERATION_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
+      messages: [{ role: "user", content: buildUserPrompt(data) }],
     });
+    generationText = extractText(generationResponse);
+  } catch (error) {
+    console.error("Generation API error:", error);
+    return NextResponse.json({ error: "Generation failed — the AI service returned an error. Please try again." }, { status: 502 });
+  }
 
-    const generationText = generationResponse.content
-      .filter((b) => b.type === "text")
-      .map((b) => (b as { type: "text"; text: string }).text)
-      .join("");
+  if (!generationText.trim()) {
+    return NextResponse.json({ error: "Generation returned empty output. Please try again." }, { status: 502 });
+  }
 
-    const parsedGeneration = parseQuestionnaire(generationText);
+  const parsedGeneration = parseQuestionnaire(generationText);
 
-    // Pass 2: silent QA call (excludes tracker questions)
-    const qaInput = buildQAInput(parsedGeneration);
+  if (parsedGeneration.questions.length === 0) {
+    return NextResponse.json({ error: "Could not parse any questions from the generated output. Please try again." }, { status: 502 });
+  }
 
+  // Pass 2: silent QA call (excludes tracker questions)
+  let qaText: string;
+  try {
     const qaResponse = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 8000,
       system: QA_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: qaInput }],
+      messages: [{ role: "user", content: buildQAInput(parsedGeneration) }],
     });
-
-    const qaText = qaResponse.content
-      .filter((b) => b.type === "text")
-      .map((b) => (b as { type: "text"; text: string }).text)
-      .join("");
-
-    const finalQuestionnaire = mergeQAResult(parsedGeneration, qaText);
-
-    return NextResponse.json({ questionnaire: finalQuestionnaire });
+    qaText = extractText(qaResponse);
   } catch (error) {
-    console.error("Survey generation error:", error);
-    return NextResponse.json({ error: "Failed to generate questionnaire" }, { status: 500 });
+    console.error("QA API error:", error);
+    // QA network failure is non-fatal — return the generation result with a specific flag
+    return NextResponse.json({ questionnaire: parsedGeneration, qaStatus: "network_error" });
   }
+
+  const { questionnaire, qaFailed } = mergeQAResult(parsedGeneration, qaText);
+
+  return NextResponse.json({
+    questionnaire,
+    qaStatus: qaFailed ? "parse_error" : "ok",
+  });
 }

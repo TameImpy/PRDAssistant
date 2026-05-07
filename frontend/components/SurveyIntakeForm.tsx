@@ -114,11 +114,13 @@ export function SurveyIntakeForm({ onSubmit, isLoading }: Props) {
   const [form, setForm] = useState<SurveyFormData>(emptyForm());
   const [fileErrors, setFileErrors] = useState({ brief: "", previousQuestionnaires: "", brandGuidelines: "" });
   const [noInputError, setNoInputError] = useState(false);
+  const [rangeError, setRangeError] = useState("");
 
   function handleClear() {
     setForm(emptyForm());
     setFileErrors({ brief: "", previousQuestionnaires: "", brandGuidelines: "" });
     setNoInputError(false);
+    setRangeError("");
   }
 
   const briefRef = useRef<HTMLInputElement>(null);
@@ -175,6 +177,15 @@ export function SurveyIntakeForm({ onSubmit, isLoading }: Props) {
       setNoInputError(true);
       return;
     }
+
+    const min = parseInt(form.minQuestions, 10);
+    const max = parseInt(form.maxQuestions, 10);
+    if (!isNaN(min) && !isNaN(max) && min > max) {
+      setRangeError("Minimum question count cannot be greater than maximum.");
+      return;
+    }
+    setRangeError("");
+
     onSubmit(form);
   }
 
@@ -216,9 +227,13 @@ export function SurveyIntakeForm({ onSubmit, isLoading }: Props) {
             <input
               type="number"
               min={1}
+              step={1}
               placeholder="e.g. 10"
               value={form.minQuestions}
-              onChange={(e) => set("minQuestions", e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || (Number.isInteger(Number(v)) && Number(v) >= 1)) set("minQuestions", v);
+              }}
               className="border-4 border-black p-4 font-body text-sm bg-surface-container-lowest focus:outline-none focus:bg-primary-container transition-colors"
             />
           </div>
@@ -227,13 +242,20 @@ export function SurveyIntakeForm({ onSubmit, isLoading }: Props) {
             <input
               type="number"
               min={1}
+              step={1}
               placeholder="e.g. 20"
               value={form.maxQuestions}
-              onChange={(e) => set("maxQuestions", e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || (Number.isInteger(Number(v)) && Number(v) >= 1)) set("maxQuestions", v);
+              }}
               className="border-4 border-black p-4 font-body text-sm bg-surface-container-lowest focus:outline-none focus:bg-primary-container transition-colors"
             />
           </div>
         </div>
+        {rangeError && (
+          <p className="font-label text-xs font-bold uppercase tracking-widest text-red-600">{rangeError}</p>
+        )}
       </div>
 
       {/* Brief upload */}

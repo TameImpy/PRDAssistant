@@ -64,14 +64,22 @@ export async function parseFile(file: File): Promise<string> {
 
   if (name.endsWith(".pdf")) {
     const pdfjsLib = await import("pdfjs-dist");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+    // Run without a worker — safe for browser environments where worker setup isn't configured
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.mjs",
+      import.meta.url
+    ).toString();
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, useWorkerFetch: false, isEvalSupported: false, useSystemFonts: true }).promise;
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const pages: string[] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      pages.push(content.items.map((item: { str?: string }) => item.str ?? "").join(" "));
+      pages.push(
+        content.items
+          .map((item) => ("str" in item ? (item as { str: string }).str : ""))
+          .join(" ")
+      );
     }
     return pages.join("\n");
   }
