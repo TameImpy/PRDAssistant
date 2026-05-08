@@ -15,7 +15,7 @@ Think thoroughly before producing output — quality is more important than spee
 
 Rules:
 - Every question must include: BASE label, QUESTION TYPE label, bold question text, answer options
-- Include routing instructions (SKIP TO Qn, EXCLUSIVE, LOCK OPTION) only where they are logically required — do not add routing by default
+- Routing instructions (SKIP TO Qn, EXCLUSIVE, LOCK OPTION): include only if the analyst has requested routing logic. If routing is not requested, do not add any routing instructions to any answer option.
 - Never reference a question number in routing that does not exist in the questionnaire
 - Begin the questionnaire with an intro message (brief, friendly, states estimated time)
 - If brand guidelines or writing style & tone documents are provided, adapt question language, style, and tone accordingly
@@ -26,7 +26,7 @@ Rules:
 Output format — every question block must follow this structure exactly:
 
 BASE: [audience filter, e.g. ASK ALL or describe the qualifying condition]
-QUESTION TYPE: [SINGLE SELECT / MULTI SELECT / TEXTBOX / SINGLE]
+QUESTION TYPE: [SINGLE SELECT / MULTI SELECT / TEXTBOX]
 
 **Q[n]. [Question text]**
 
@@ -57,8 +57,8 @@ function buildUserPrompt(data: SurveyFormData): string {
   const prevText = data.previousQuestionnairesFiles.map((f) => f.text).join("\n\n") || "not provided";
   const brandText = data.brandGuidelinesFiles.map((f) => f.text).join("\n\n") || "not provided";
 
-  const min = parseInt(data.minQuestions);
-  const max = parseInt(data.maxQuestions);
+  const min = parseInt(data.minQuestions, 10);
+  const max = parseInt(data.maxQuestions, 10);
   const questionRange =
     !isNaN(min) && !isNaN(max)
       ? `${min} to ${max} questions`
@@ -91,7 +91,9 @@ Context documents:
 Example questions from external sources:
 ${data.exampleQuestions || "none provided"}
 
-${newWaveSection}`;
+${newWaveSection}
+
+Routing logic: ${data.includeRouting === "yes" ? "Yes — include skip logic and routing flags where appropriate." : "No — do not include any routing instructions."}`;
 }
 
 function extractText(response: Anthropic.Message): string {

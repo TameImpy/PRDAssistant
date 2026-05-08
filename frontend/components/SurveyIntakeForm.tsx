@@ -18,6 +18,7 @@ export type SurveyFormData = {
   brandGuidelinesFiles: UploadedFile[];
   exampleQuestions: string;
   newWave: "yes" | "no";
+  includeRouting: "yes" | "no";
 };
 
 const MAX_FILES = 3;
@@ -32,6 +33,7 @@ const emptyForm = (): SurveyFormData => ({
   brandGuidelinesFiles: [],
   exampleQuestions: "",
   newWave: "no",
+  includeRouting: "no",
 });
 
 type MultiFileFieldProps = {
@@ -108,10 +110,11 @@ function MultiFileUploadField({ label, files = [], error, onAdd, onRemove, input
 type Props = {
   onSubmit: (data: SurveyFormData) => void;
   isLoading: boolean;
+  initialData?: SurveyFormData;
 };
 
-export function SurveyIntakeForm({ onSubmit, isLoading }: Props) {
-  const [form, setForm] = useState<SurveyFormData>(emptyForm());
+export function SurveyIntakeForm({ onSubmit, isLoading, initialData }: Props) {
+  const [form, setForm] = useState<SurveyFormData>(initialData ?? emptyForm());
   const [fileErrors, setFileErrors] = useState({ brief: "", previousQuestionnaires: "", brandGuidelines: "" });
   const [noInputError, setNoInputError] = useState(false);
   const [rangeError, setRangeError] = useState("");
@@ -298,6 +301,32 @@ export function SurveyIntakeForm({ onSubmit, isLoading }: Props) {
           onChange={(e) => set("exampleQuestions", e.target.value)}
           className="border-4 border-black p-4 font-body text-sm bg-surface-container-lowest resize-none focus:outline-none focus:bg-primary-container transition-colors"
         />
+      </div>
+
+      {/* Include routing toggle */}
+      <div className="flex flex-col gap-2">
+        <label className="font-label text-xs font-black uppercase tracking-widest">Include Routing Logic?</label>
+        <p className="font-body text-xs text-on-surface-variant">If yes, the AI will add skip logic and answer option flags where relevant. Turn off for simple, linear surveys.</p>
+        <div className="flex gap-0">
+          <button
+            type="button"
+            onClick={() => set("includeRouting", "yes")}
+            className={`px-8 py-4 border-4 border-black font-headline font-black uppercase tracking-widest text-sm transition-colors ${
+              form.includeRouting === "yes" ? "bg-black text-white" : "bg-surface-container-lowest hover:bg-primary-container"
+            }`}
+          >
+            YES
+          </button>
+          <button
+            type="button"
+            onClick={() => set("includeRouting", "no")}
+            className={`px-8 py-4 border-4 border-l-0 border-black font-headline font-black uppercase tracking-widest text-sm transition-colors ${
+              form.includeRouting === "no" ? "bg-black text-white" : "bg-surface-container-lowest hover:bg-primary-container"
+            }`}
+          >
+            NO
+          </button>
+        </div>
       </div>
 
       {/* New wave toggle */}
