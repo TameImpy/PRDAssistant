@@ -6,6 +6,7 @@ import { SurveyEditor } from "@/components/SurveyEditor";
 import Link from "next/link";
 import { useState, useRef } from "react";
 import type { ParsedQuestionnaire } from "@/lib/survey-parser";
+import { generateQuestionnaireDOCX } from "@/lib/survey-docx";
 
 function safeInt(val: string): number | undefined {
   const n = parseInt(val, 10);
@@ -136,7 +137,7 @@ export default function SurveyQuestionnairePage() {
         body: JSON.stringify(data),
       });
 
-      let json: { questionnaire?: ParsedQuestionnaire; qaSkipped?: boolean; error?: string };
+      let json: { questionnaire?: ParsedQuestionnaire; qaStatus?: "ok" | "network_error" | "parse_error"; error?: string };
       try {
         json = await res.json();
       } catch {
@@ -247,14 +248,20 @@ export default function SurveyQuestionnairePage() {
           {questionnaire && !isLoading && (
             <div className="mt-12 border-t-4 border-black pt-12 flex flex-col gap-6">
 
-              {/* Two action buttons */}
+              {/* Three action buttons */}
               {!showRegenerateForm && !showRegenerateChoice && !showAddQuestions && (
                 <div className="flex gap-4">
                   <button
-                    onClick={() => setShowAddQuestions(true)}
+                    onClick={() => generateQuestionnaireDOCX(questionnaire)}
                     className="flex-1 border-4 border-black px-6 py-5 font-headline font-black uppercase tracking-widest text-sm bg-black text-white hover:bg-primary-container hover:text-black transition-colors transform hover:-translate-x-1 hover:-translate-y-1 neo-brutalist-shadow"
                   >
-                    + ADD AI QUESTIONS
+                    ↓ DOWNLOAD .DOCX
+                  </button>
+                  <button
+                    onClick={() => setShowAddQuestions(true)}
+                    className="flex-1 border-4 border-black px-6 py-5 font-headline font-black uppercase tracking-widest text-sm bg-surface-container-lowest hover:bg-primary-container transition-colors transform hover:-translate-x-1 hover:-translate-y-1 neo-brutalist-shadow"
+                  >
+                    + ADD ADDITIONAL AI QUESTIONS
                   </button>
                   <button
                     onClick={handleRegenerateClick}
@@ -269,7 +276,7 @@ export default function SurveyQuestionnairePage() {
               {showAddQuestions && (
                 <div className="flex flex-col gap-4 border-4 border-black p-6 bg-surface-container-lowest">
                   <div className="flex items-center justify-between">
-                    <h2 className="font-headline font-black text-xl uppercase tracking-tighter">Add AI-Suggested Questions</h2>
+                    <h2 className="font-headline font-black text-xl uppercase tracking-tighter">Add Additional AI Questions</h2>
                     <button
                       onClick={() => { setShowAddQuestions(false); setAddInstruction(""); setAddError(""); }}
                       className="font-label text-xs font-black uppercase tracking-widest text-on-surface-variant hover:text-black transition-colors"
