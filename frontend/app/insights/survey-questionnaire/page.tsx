@@ -4,7 +4,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { SurveyIntakeForm, SurveyFormData } from "@/components/SurveyIntakeForm";
 import { SurveyEditor } from "@/components/SurveyEditor";
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { ParsedQuestionnaire } from "@/lib/survey-parser";
 import { generateQuestionnaireDOCX } from "@/lib/survey-docx";
 
@@ -82,7 +82,44 @@ export default function SurveyQuestionnairePage() {
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [editorKey, setEditorKey] = useState(0);
+  const [savedDraft, setSavedDraft] = useState<{ questionnaire: ParsedQuestionnaire; formData: SurveyFormData } | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem("survey_draft");
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
   const sessionId = useRef(`session_${Date.now()}_${Math.random().toString(36).slice(2)}`).current;
+
+  // Warn before leaving while generation is in progress
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (isLoading) e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isLoading]);
+
+  // Persist questionnaire + formData to localStorage on every change
+  useEffect(() => {
+    if (!questionnaire || !formData) return;
+    try {
+      localStorage.setItem("survey_draft", JSON.stringify({ questionnaire, formData }));
+    } catch { /* non-fatal */ }
+  }, [questionnaire, formData]);
+
+  function clearDraft() {
+    setSavedDraft(null);
+    try { localStorage.removeItem("survey_draft"); } catch { /* non-fatal */ }
+  }
+
+  function restoreDraft() {
+    if (!savedDraft) return;
+    setQuestionnaire(savedDraft.questionnaire);
+    setFormData(savedDraft.formData);
+    setEditorKey((k) => k + 1);
+    setSavedDraft(null);
+  }
 
   function handleRegenerateClick() {
     if (!window.confirm("Regenerating will replace your current questionnaire and lose any edits. Continue?")) return;
@@ -153,6 +190,7 @@ export default function SurveyQuestionnairePage() {
       }
       setQuestionnaire(json.questionnaire);
       setQaStatus(json.qaStatus ?? "ok");
+      clearDraft();
     } catch (err) {
       setQuestionnaire(previousQuestionnaire);
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -187,6 +225,29 @@ export default function SurveyQuestionnairePage() {
               </button>
             )}
           </div>
+
+          {/* Saved draft banner */}
+          {savedDraft && !questionnaire && !isLoading && (
+            <div className="border-4 border-black bg-primary-container p-4 mb-8 flex items-center justify-between gap-4">
+              <p className="font-label text-xs font-black uppercase tracking-widest">
+                You have an unsaved draft from a previous session.
+              </p>
+              <div className="flex gap-3 shrink-0">
+                <button
+                  onClick={restoreDraft}
+                  className="font-label text-xs font-black uppercase tracking-widest border-2 border-black px-4 py-2 bg-black text-white hover:bg-white hover:text-black transition-colors"
+                >
+                  RESTORE
+                </button>
+                <button
+                  onClick={clearDraft}
+                  className="font-label text-xs font-black uppercase tracking-widest border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors"
+                >
+                  DISCARD
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Loading state */}
           {isLoading && (
@@ -227,7 +288,7 @@ export default function SurveyQuestionnairePage() {
 
           {/* Editor / preview panel */}
           {questionnaire && !isLoading && !showRegenerateChoice && !showRegenerateForm && (
-            <div className="mb-12">
+            <div className={`mb-12 transition-opacity ${isAdding ? "opacity-40 pointer-events-none" : ""}`}>
               <SurveyEditor
                 key={editorKey}
                 questionnaire={questionnaire}
@@ -252,7 +313,15 @@ export default function SurveyQuestionnairePage() {
               {!showRegenerateForm && !showRegenerateChoice && !showAddQuestions && (
                 <div className="flex gap-4">
                   <button
-                    onClick={() => generateQuestionnaireDOCX(questionnaire)}
+                    onClick={() => {
+                      const name = formData?.surveyName?.trim() || formData?.researchGoal?.trim();
+                      const slug = name
+                        ? name.split(/\s+/).slice(0, 5).join("_").replace(/[^a-zA-Z0-9_]/g, "").toLowerCase()
+                        : "questionnaire";
+                      const date = new Date().toISOString().slice(0, 10);
+                      const title = formData?.surveyName?.trim() || undefined;
+                      generateQuestionnaireDOCX(questionnaire, `${slug}_${date}.docx`, title);
+                    }}
                     className="flex-1 border-4 border-black px-6 py-5 font-headline font-black uppercase tracking-widest text-sm bg-black text-white hover:bg-primary-container hover:text-black transition-colors transform hover:-translate-x-1 hover:-translate-y-1 neo-brutalist-shadow"
                   >
                     ↓ DOWNLOAD .DOCX

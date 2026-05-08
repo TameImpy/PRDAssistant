@@ -9,6 +9,7 @@ type UploadedFile = {
 };
 
 export type SurveyFormData = {
+  surveyName: string;
   researchGoal: string;
   researchAreas: string;
   minQuestions: string;
@@ -24,6 +25,7 @@ export type SurveyFormData = {
 const MAX_FILES = 3;
 
 const emptyForm = (): SurveyFormData => ({
+  surveyName: "",
   researchGoal: "",
   researchAreas: "",
   minQuestions: "",
@@ -197,11 +199,29 @@ export function SurveyIntakeForm({ onSubmit, isLoading, initialData }: Props) {
   return (
     <div className="flex flex-col gap-8">
 
+      {/* Survey name */}
+      <div className="flex flex-col gap-2">
+        <label className="font-label text-xs font-black uppercase tracking-widest">Survey / Project Name <span className="font-normal normal-case tracking-normal text-on-surface-variant">(optional)</span></label>
+        <input
+          type="text"
+          placeholder="e.g. Brand Tracker Wave 3 — Q2 2026"
+          value={form.surveyName}
+          onChange={(e) => set("surveyName", e.target.value)}
+          className="border-4 border-black p-4 font-body text-sm bg-surface-container-lowest focus:outline-none focus:bg-primary-container transition-colors"
+        />
+      </div>
+
       {/* Research goal */}
       <div className="flex flex-col gap-2">
-        <label className="font-label text-xs font-black uppercase tracking-widest">Research Goal</label>
+        <div className="flex items-center justify-between">
+          <label className="font-label text-xs font-black uppercase tracking-widest">Research Goal</label>
+          <span className={`font-label text-xs font-bold uppercase tracking-widest ${form.researchGoal.length > 900 ? "text-red-600" : "text-on-surface-variant"}`}>
+            {form.researchGoal.length}/1000
+          </span>
+        </div>
         <textarea
           rows={3}
+          maxLength={1000}
           placeholder="What is the main objective of this survey? What do you want to learn?"
           value={form.researchGoal}
           onChange={(e) => set("researchGoal", e.target.value)}
@@ -211,9 +231,15 @@ export function SurveyIntakeForm({ onSubmit, isLoading, initialData }: Props) {
 
       {/* Research areas */}
       <div className="flex flex-col gap-2">
-        <label className="font-label text-xs font-black uppercase tracking-widest">Research Areas to Include</label>
+        <div className="flex items-center justify-between">
+          <label className="font-label text-xs font-black uppercase tracking-widest">Research Areas to Include</label>
+          <span className={`font-label text-xs font-bold uppercase tracking-widest ${form.researchAreas.length > 900 ? "text-red-600" : "text-on-surface-variant"}`}>
+            {form.researchAreas.length}/1000
+          </span>
+        </div>
         <textarea
           rows={3}
+          maxLength={1000}
           placeholder="Which topics, themes, or areas should the survey cover?"
           value={form.researchAreas}
           onChange={(e) => set("researchAreas", e.target.value)}

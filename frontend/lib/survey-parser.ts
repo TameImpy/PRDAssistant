@@ -106,6 +106,24 @@ export function buildQAInput(questionnaire: ParsedQuestionnaire): string {
   return parts.join("\n\n---\n\n");
 }
 
+// Validate routing references — returns list of invalid references found
+export function validateRouting(questionnaire: ParsedQuestionnaire): string[] {
+  const validIds = new Set(questionnaire.questions.map((q) => q.id));
+  const issues: string[] = [];
+
+  for (const q of questionnaire.questions) {
+    for (const opt of q.answerOptions) {
+      if (!opt.routing) continue;
+      const skipMatch = opt.routing.match(/^SKIP TO (Q\d+)$/i);
+      if (skipMatch && !validIds.has(skipMatch[1].toUpperCase())) {
+        issues.push(`${q.id}: "${opt.text}" routes to ${skipMatch[1]} which does not exist`);
+      }
+    }
+  }
+
+  return issues;
+}
+
 // Merge QA-reviewed non-tracker questions back with original tracker questions.
 // If QA returns a different question count, fall back to the original generation.
 export function mergeQAResult(

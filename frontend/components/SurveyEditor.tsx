@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ParsedQuestionnaire, SurveyQuestion, AnswerOption } from "@/lib/survey-parser";
+import { validateRouting } from "@/lib/survey-parser";
 import type { EditLogEntry } from "@/app/api/insights/log/route";
 
 const QUESTION_TYPES = ["SINGLE SELECT", "MULTI SELECT", "TEXTBOX"];
@@ -238,6 +239,25 @@ export function SurveyEditor({ questionnaire, sessionId, minQuestions, maxQuesti
     update(renumbered);
   }
 
+  // Remove tracker status from a question
+  function handleRemoveTracker(index: number) {
+    if (!window.confirm("Removing the TRACKER tag means this question will no longer be protected from edits or matched to previous wave wording. Continue?")) return;
+    const q = questions[index];
+    const updated = questions.map((q, i) =>
+      i === index
+        ? { ...q, isTracker: false, questionText: q.questionText.replace(/\s*\[TRACKER\]/gi, "").trim() }
+        : q
+    );
+    logEdit({
+      session_id: sessionId,
+      question_id: q.id,
+      original_text: q.questionText,
+      edited_text: updated[index].questionText,
+      edit_type: "question_text",
+    });
+    update(updated);
+  }
+
   // Delete question
   function handleDelete(index: number) {
     if (!window.confirm("Delete this question? This cannot be undone.")) return;
@@ -280,6 +300,25 @@ export function SurveyEditor({ questionnaire, sessionId, minQuestions, maxQuesti
         </div>
       )}
 
+      {/* Routing validation warnings */}
+      {(() => {
+        const issues = validateRouting({ ...questionnaire, questions });
+        return issues.length > 0 ? (
+          <div className="border-4 border-red-600 bg-red-50 p-4">
+            <p className="font-label text-xs font-black uppercase tracking-widest text-red-600 mb-2">
+              Routing issues — the following options reference questions that do not exist:
+            </p>
+            <ul className="flex flex-col gap-1">
+              {issues.map((issue, i) => (
+                <li key={i} className="font-label text-xs font-bold uppercase tracking-widest text-red-600">
+                  · {issue}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null;
+      })()}
+
       {/* Intro */}
       {questionnaire.intro && (
         <div className="border-4 border-black p-6 bg-surface-container-lowest">
@@ -296,9 +335,14 @@ export function SurveyEditor({ questionnaire, sessionId, minQuestions, maxQuesti
             <div className="flex items-center gap-2">
               <span className="font-label text-xs font-black text-white uppercase tracking-widest">{q.id}</span>
               {q.isTracker && (
-                <span className="font-label text-xs font-black px-2 py-0.5 bg-[#00E0FF] text-black uppercase tracking-widest">
-                  TRACKER
-                </span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTracker(qIndex)}
+                  title="Click to remove tracker protection"
+                  className="font-label text-xs font-black px-2 py-0.5 bg-[#00E0FF] text-black uppercase tracking-widest hover:bg-red-400 hover:text-white transition-colors"
+                >
+                  TRACKER ×
+                </button>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -318,7 +362,8 @@ export function SurveyEditor({ questionnaire, sessionId, minQuestions, maxQuesti
               </button>
               <button
                 onClick={() => handleDelete(qIndex)}
-                className="font-label text-xs font-black text-white uppercase tracking-widest hover:text-red-400 transition-colors px-2"
+                disabled={q.isTracker}
+                className="font-label text-xs font-black text-white uppercase tracking-widest hover:text-red-400 transition-colors px-2 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 DELETE
               </button>
@@ -339,7 +384,8 @@ export function SurveyEditor({ questionnaire, sessionId, minQuestions, maxQuesti
               <select
                 value={q.questionType}
                 onChange={(e) => handleChangeType(qIndex, e.target.value)}
-                className="font-label text-xs font-black px-2 py-1 border-2 border-black uppercase tracking-widest bg-surface-container-lowest focus:outline-none focus:bg-primary-container cursor-pointer"
+                disabled={q.isTracker}
+                className="font-label text-xs font-black px-2 py-1 border-2 border-black uppercase tracking-widest bg-surface-container-lowest focus:outline-none focus:bg-primary-container cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {QUESTION_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -347,12 +393,17 @@ export function SurveyEditor({ questionnaire, sessionId, minQuestions, maxQuesti
               </select>
             </div>
 
-            {/* Editable question text */}
+            {/* Editable question text — locked for tracker questions */}
             <textarea
               rows={2}
               value={q.questionText}
               onChange={(e) => handleEditQuestionText(qIndex, e.target.value)}
-              className="font-headline font-black text-lg uppercase tracking-tighter border-2 border-transparent hover:border-black focus:border-black focus:outline-none p-2 bg-transparent resize-none transition-colors w-full focus:bg-primary-container"
+              readOnly={q.isTracker}
+              className={`font-headline font-black text-lg uppercase tracking-tighter border-2 p-2 bg-transparent resize-none transition-colors w-full ${
+                q.isTracker
+                  ? "border-transparent opacity-60 cursor-not-allowed"
+                  : "border-transparent hover:border-black focus:border-black focus:outline-none focus:bg-primary-container"
+              }`}
             />
 
             {/* TEXTBOX — show open text placeholder */}

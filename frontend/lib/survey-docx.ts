@@ -112,7 +112,8 @@ function divider(): Paragraph {
 
 export async function generateQuestionnaireDOCX(
   questionnaire: ParsedQuestionnaire,
-  filename?: string
+  filename?: string,
+  title?: string
 ): Promise<void> {
   const children: Paragraph[] = [];
 
@@ -121,7 +122,7 @@ export async function generateQuestionnaireDOCX(
     new Paragraph({
       children: [
         new TextRun({
-          text: "SURVEY QUESTIONNAIRE",
+          text: (title ?? "SURVEY QUESTIONNAIRE").toUpperCase(),
           bold: true,
           size: 40,
           font: "Barlow",
